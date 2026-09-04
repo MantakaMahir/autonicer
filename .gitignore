@@ -1,0 +1,6 @@
+autonicer
+demo/cpu_hog
+src/*.o
+tests/test_autonicer
+core
+core.*

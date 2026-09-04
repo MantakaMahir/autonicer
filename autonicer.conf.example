@@ -1,0 +1,8 @@
+sample_interval=2
+high_threshold=80
+critical_threshold=90
+high_samples_required=3
+nice_step=5
+max_nice=19
+cooldown_seconds=8
+allow_auto_pause=false
