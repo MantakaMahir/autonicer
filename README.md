@@ -58,3 +58,24 @@ For a real action, use `./autonicer monitor` and stop the workload with `Ctrl-C`
 ## Limitations and Future Work
 
 The monitor runs in the foreground, the default pause policy is disabled, and state is local to one user. A future version could add a clearly bounded interactive pause prompt, richer test fixtures, or optional ncurses output. Kernel modules, threads, cgroups, web interfaces, and process killing are intentionally out of scope.
+
+## Desktop UI
+
+The `desktop/` directory contains a Tauri 2 + React + TypeScript interface. Its architecture is:
+
+```text
+React UI -> Tauri Rust bridge -> approved AutoNicer C executable -> Linux
+```
+
+The UI invokes only fixed semantic commands through Rust. The C core remains authoritative for `/proc`, classification, permissions, priority changes, and signals. The adapter adds `sample` for one-shot JSON system status and `list --json` for registered process snapshots; existing CLI behavior is preserved.
+
+On a Linux machine with Rust and Node.js installed:
+
+```sh
+make desktop-install
+make desktop-build
+npm run tauri dev --prefix desktop
+npm run tauri build --prefix desktop
+```
+
+The production bundle uses the compiled C executable as a Tauri external binary. Desktop core functionality is Linux-only; the web assets may build elsewhere, but process controls require Linux.

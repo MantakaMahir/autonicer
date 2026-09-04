@@ -15,6 +15,16 @@ demo/cpu_hog: demo/cpu_hog.c
 test: autonicer
 	./tests/run_tests.sh
 
+desktop-install:
+	$(MAKE) autonicer
+	npm install --prefix desktop
+
+desktop-build: desktop-install
+	npm run build --prefix desktop
+
+desktop-dev: desktop-install
+	npm run tauri dev --prefix desktop
+
 clean:
 	rm -f autonicer demo/cpu_hog $(OBJ) tests/test_autonicer
 
