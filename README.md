@@ -69,7 +69,14 @@ React UI -> Tauri Rust bridge -> approved AutoNicer C executable -> Linux
 
 The UI invokes only fixed semantic commands through Rust. The C core remains authoritative for `/proc`, classification, permissions, priority changes, and signals. The adapter adds `sample` for one-shot JSON system status and `list --json` for registered process snapshots; existing CLI behavior is preserved.
 
-On a Linux machine with Rust and Node.js installed:
+Install the native toolchain first if needed:
+
+```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+. "$HOME/.cargo/env"
+```
+
+On a Linux machine with Rust, Cargo, and Node.js installed:
 
 ```sh
 make desktop-install
