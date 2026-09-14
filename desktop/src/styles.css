@@ -387,6 +387,36 @@ h3 {
   padding: 0;
   overflow: hidden;
 }
+.process-search {
+  display: grid;
+  gap: 7px;
+  margin: 0 18px 16px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.selected-process {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin: 0 18px 16px;
+  padding: 12px 14px;
+  border: 1px solid #35634f;
+  border-radius: 5px;
+  background: #14231f;
+}
+.selected-process b,
+.selected-process small {
+  display: block;
+}
+.selected-process b {
+  margin-top: 3px;
+}
+.selected-process small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
 .toolbar {
   display: flex;
   gap: 10px;

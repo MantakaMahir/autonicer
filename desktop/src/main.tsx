@@ -201,7 +201,6 @@ function Dashboard({
               <p className="eyebrow">LIVE OS TELEMETRY</p>
               <h2>CPU utilization</h2>
             </div>
-            <Badge tone="green">REAL DATA</Badge>
           </div>
           <div className="chart">
             <svg viewBox="0 0 800 220" preserveAspectRatio="none">
@@ -244,6 +243,16 @@ function Processes({
   refresh: () => void;
 }) {
   const [actionError, setActionError] = useState("");
+  const [query, setQuery] = useState("");
+  const [selectedPid, setSelectedPid] = useState<number | null>(null);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filtered = processes.filter(
+    (p) =>
+      !normalizedQuery ||
+      p.name.toLowerCase().includes(normalizedQuery) ||
+      String(p.pid).includes(normalizedQuery),
+  );
+  const selected = processes.find((p) => p.pid === selectedPid);
   const act = async (command: string, pid: number, classification?: string) => {
     try {
       await core.command(command, pid, classification);
@@ -262,7 +271,28 @@ function Processes({
         </div>
         <Badge>{processes.length}</Badge>
       </div>
+      <label className="process-search">
+        Search by process name or PID
+        <input
+          value={query}
+          placeholder="e.g. cpu_hog or 1234"
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </label>
       {actionError && <div className="error">{actionError}</div>}
+      {selected && (
+        <div className="selected-process">
+          <div>
+            <span className="eyebrow">SELECTED PROCESS</span>
+            <b>{selected.name}</b>
+            <small>
+              PID {selected.pid} | {selected.classification} | RSS{" "}
+              {(selected.rssKb / 1024).toFixed(1)}M
+            </small>
+          </div>
+          <span className="mono">{selected.cpuPercent.toFixed(1)}% CPU</span>
+        </div>
+      )}
       <div className="table-wrap">
         <table>
           <thead>
@@ -278,8 +308,12 @@ function Processes({
             </tr>
           </thead>
           <tbody>
-            {processes.map((p) => (
-              <tr key={p.pid}>
+            {filtered.map((p) => (
+              <tr
+                className={selectedPid === p.pid ? "selected" : ""}
+                key={p.pid}
+                onClick={() => setSelectedPid(p.pid)}
+              >
                 <td className="mono">{p.pid}</td>
                 <td>
                   <b>{p.name}</b>
@@ -349,10 +383,14 @@ function Processes({
             ))}
           </tbody>
         </table>
-        {!processes.length && (
+        {!filtered.length && (
           <div className="empty table-empty">
-            <b>No running user processes</b>
-            <span>Processes will appear when the core refreshes /proc.</span>
+            <b>{query ? "No matching processes" : "No running user processes"}</b>
+            <span>
+              {query
+                ? "Try a different process name or PID."
+                : "Processes will appear when the core refreshes /proc."}
+            </span>
           </div>
         )}
       </div>
@@ -452,7 +490,6 @@ function Paging() {
           <p className="eyebrow">EDUCATIONAL SIMULATION</p>
           <h2>Paging Lab</h2>
         </div>
-        <Badge tone="blue">NO LINUX PAGES MODIFIED</Badge>
       </div>
       <div className="lab-controls">
         <label>
