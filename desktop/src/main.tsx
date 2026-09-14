@@ -575,6 +575,7 @@ function Policies() {
     "nice_step",
     "max_nice",
     "cooldown_seconds",
+    "allow_auto_pause",
     "memory_high_available_percent",
     "memory_critical_available_percent",
     "memory_samples_required",
