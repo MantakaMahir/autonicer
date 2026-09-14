@@ -58,7 +58,7 @@ npm run tauri:dev --prefix desktop
 npm run tauri:build --prefix desktop
 ```
 
-`desktop/package.json` also provides `dev` for a browser-only Vite preview. That preview cannot call Tauri IPC and is not a functional AutoNicer desktop session.
+`desktop/package.json` also provides `dev` for a browser-only Vite preview. Browser mode displays clearly labeled sample telemetry and paging data for UI review. Linux process controls, configuration saves, and live `/proc` values remain disabled; use `./run-desktop.sh` for the real controller.
 
 ## CLI Commands
 

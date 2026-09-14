@@ -117,10 +117,20 @@ function App() {
           <div className="connection">
             <i className={connected ? "online" : ""} />
             <div>
-              <b>{connected ? "Core connected" : "Core unavailable"}</b>
-              <small>
-                {monitoring ? "Controller running" : "Telemetry available"}
-              </small>
+               <b>
+                 {core.isDesktopShell
+                   ? connected
+                     ? "Core connected"
+                     : "Core unavailable"
+                   : "Browser preview"}
+               </b>
+               <small>
+                 {core.isDesktopShell
+                   ? monitoring
+                     ? "Controller running"
+                     : "Telemetry available"
+                   : "Sample telemetry only"}
+               </small>
             </div>
           </div>
         </div>
@@ -139,10 +149,14 @@ function App() {
                   : "MONITORING"
                 : "MONITOR STOPPED"}
             </Badge>
-            <button className="outline" onClick={() => setDryRun((x) => !x)}>
+             <button
+               className="outline"
+               disabled={!core.isDesktopShell}
+               onClick={() => setDryRun((x) => !x)}
+             >
               {dryRun ? "Live mode" : "Dry-run mode"}
             </button>
-            <button className="outline" onClick={monitor}>
+             <button className="outline" disabled={!core.isDesktopShell} onClick={monitor}>
               {monitoring ? "Stop monitor" : "Start monitor"}
             </button>
           </div>
@@ -363,18 +377,26 @@ function Processes({
                 </td>
                 <td>
                   <div className="button-grid">
-                    <button onClick={() => act("classify", p.pid, "normal")}>
+                    <button
+                      disabled={!core.isDesktopShell}
+                      onClick={() => act("classify", p.pid, "normal")}
+                    >
                       Normal
                     </button>
                     <button
+                      disabled={!core.isDesktopShell}
                       onClick={() => act("classify", p.pid, "background")}
                     >
                       Background
                     </button>
-                    <button onClick={() => act("classify", p.pid, "critical")}>
+                    <button
+                      disabled={!core.isDesktopShell}
+                      onClick={() => act("classify", p.pid, "critical")}
+                    >
                       Critical
                     </button>
                     <button
+                      disabled={!core.isDesktopShell}
                       onClick={() =>
                         act(p.protected ? "unprotect" : "protect", p.pid)
                       }
@@ -382,13 +404,13 @@ function Processes({
                       {p.protected ? "Unprotect" : "Protect"}
                     </button>
                     <button
-                      disabled={!p.priorityChanged}
+                      disabled={!core.isDesktopShell || !p.priorityChanged}
                       onClick={() => act("restore", p.pid)}
                     >
                       Restore
                     </button>
                     <button
-                      disabled={!p.paused}
+                      disabled={!core.isDesktopShell || !p.paused}
                       onClick={() => act("resume", p.pid)}
                     >
                       Resume
@@ -630,7 +652,7 @@ function Policies() {
           </label>
         ))}
       </div>
-      <button className="run-button" onClick={save}>
+      <button className="run-button" disabled={!core.isDesktopShell} onClick={save}>
         Save through C core
       </button>
       {message && <p className="safety-note">{message}</p>}
@@ -641,6 +663,7 @@ function Policies() {
   );
 }
 function Settings({ connected }: { connected: boolean }) {
+  const available = core.isDesktopShell && connected;
   return (
     <section className="panel settings">
       <p className="eyebrow">APPLICATION</p>
@@ -648,10 +671,14 @@ function Settings({ connected }: { connected: boolean }) {
       <div className="setting">
         <div>
           <b>Core connection</b>
-          <span>Restricted semantic Tauri bridge</span>
-        </div>
-        <Badge tone={connected ? "green" : "red"}>
-          {connected ? "CONNECTED" : "DISCONNECTED"}
+           <span>
+             {core.isDesktopShell
+               ? "Restricted semantic Tauri bridge"
+               : "Browser preview with sample data"}
+           </span>
+         </div>
+         <Badge tone={available ? "green" : core.isDesktopShell ? "red" : "blue"}>
+           {available ? "CONNECTED" : core.isDesktopShell ? "DISCONNECTED" : "PREVIEW"}
         </Badge>
       </div>
     </section>
