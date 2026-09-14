@@ -50,58 +50,68 @@ fn run_core(app: &AppHandle, args: &[&str]) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
-#[tauri::command]
-fn get_system_status(app: AppHandle) -> Result<SystemStatus, String> {
-    serde_json::from_str(run_core(&app, &["sample"])?.trim()).map_err(|e| e.to_string())
+async fn run_core_async(app: AppHandle, args: Vec<String>) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+        run_core(&app, &refs)
+    }).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-fn get_processes(app: AppHandle) -> Result<serde_json::Value, String> {
-    serde_json::from_str(run_core(&app, &["list", "--json"])?.trim()).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn get_memory_status(app: AppHandle) -> Result<MemoryStatus, String> {
-    serde_json::from_str(run_core(&app, &["memory", "--json"])?.trim()).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn get_memory_candidates(app: AppHandle) -> Result<serde_json::Value, String> {
-    serde_json::from_str(run_core(&app, &["memory-candidates", "--json"])?.trim()).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn run_pager_simulation(app: AppHandle, algorithm: String, frames: u32, reference: String) -> Result<serde_json::Value, String> {
-    if !matches!(algorithm.as_str(), "fifo" | "lru" | "clock") || !(1..=128).contains(&frames) || reference.is_empty() { return Err("invalid paging simulation request".into()); }
-    let frame_text = frames.to_string();
-    let output = run_core(&app, &["pager-demo", "--algorithm", &algorithm, "--frames", &frame_text, "--reference", &reference])?;
+async fn get_system_status(app: AppHandle) -> Result<SystemStatus, String> {
+    let output=run_core_async(app,vec!["sample".into()]).await?;
     serde_json::from_str(output.trim()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_history(app: AppHandle) -> Result<String, String> { run_core(&app, &["history"]) }
-
-#[tauri::command]
-fn get_config(app: AppHandle) -> Result<String, String> { run_core(&app, &["config"]) }
-
-#[tauri::command]
-fn process_command(app: AppHandle, command: String, pid: u32, classification: Option<String>) -> Result<String, String> {
-    let pid_text = pid.to_string();
-    let args: Vec<&str> = match command.as_str() {
-        "classify" => vec!["classify", &pid_text, classification.as_deref().ok_or("classification is required")?],
-        "protect" | "unprotect" | "restore" | "resume" => vec![command.as_str(), &pid_text],
-        _ => return Err("unsupported process command".into()),
-    };
-    run_core(&app, &args)
+async fn get_processes(app: AppHandle) -> Result<serde_json::Value, String> {
+    let output=run_core_async(app,vec!["list".into(),"--json".into()]).await?;
+    serde_json::from_str(output.trim()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn update_config(app: AppHandle, values: Vec<String>) -> Result<String, String> {
+async fn get_memory_status(app: AppHandle) -> Result<MemoryStatus, String> {
+    let output=run_core_async(app,vec!["memory".into(),"--json".into()]).await?;
+    serde_json::from_str(output.trim()).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn get_memory_candidates(app: AppHandle) -> Result<serde_json::Value, String> {
+    let output=run_core_async(app,vec!["memory-candidates".into(),"--json".into()]).await?;
+    serde_json::from_str(output.trim()).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn run_pager_simulation(app: AppHandle, algorithm: String, frames: u32, reference: String) -> Result<serde_json::Value, String> {
+    if !matches!(algorithm.as_str(), "fifo" | "lru" | "clock") || !(1..=128).contains(&frames) || reference.is_empty() { return Err("invalid paging simulation request".into()); }
+    let frame_text = frames.to_string();
+    let output = run_core_async(app, vec!["pager-demo".into(),"--algorithm".into(),algorithm,"--frames".into(),frame_text,"--reference".into(),reference]).await?;
+    serde_json::from_str(output.trim()).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn get_history(app: AppHandle) -> Result<String, String> { run_core_async(app,vec!["history".into()]).await }
+
+#[tauri::command]
+async fn get_config(app: AppHandle) -> Result<String, String> { run_core_async(app,vec!["config".into()]).await }
+
+#[tauri::command]
+async fn process_command(app: AppHandle, command: String, pid: u32, classification: Option<String>) -> Result<String, String> {
+    let pid_text = pid.to_string();
+    let args: Vec<String> = match command.as_str() {
+        "classify" => vec!["classify".into(),pid_text,classification.ok_or("classification is required")?],
+        "protect" | "unprotect" | "restore" | "resume" => vec![command,pid_text],
+        _ => return Err("unsupported process command".into()),
+    };
+    run_core_async(app,args).await
+}
+
+#[tauri::command]
+async fn update_config(app: AppHandle, values: Vec<String>) -> Result<String, String> {
     if values.is_empty() || values.iter().any(|v| !v.contains('=') || v.starts_with('-')) { return Err("invalid configuration values".into()); }
     let allowed = ["sample_interval=", "high_threshold=", "critical_threshold=", "high_samples_required=", "nice_step=", "max_nice=", "cooldown_seconds=", "allow_auto_pause=", "memory_high_available_percent=", "memory_critical_available_percent=", "memory_samples_required="];
     if values.iter().any(|v| !allowed.iter().any(|prefix| v.starts_with(prefix))) { return Err("unsupported configuration key".into()); }
-    let refs: Vec<&str> = values.iter().map(String::as_str).collect();
-    run_core(&app, &std::iter::once("set-config").chain(refs).collect::<Vec<_>>())
+    let mut args=vec!["set-config".to_string()];args.extend(values);run_core_async(app,args).await
 }
 
 #[tauri::command]

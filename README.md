@@ -85,6 +85,12 @@ npm run tauri dev --prefix desktop
 npm run tauri build --prefix desktop
 ```
 
+The one-command development launcher is:
+
+```sh
+./run-desktop.sh
+```
+
 The production bundle uses the compiled C executable as a Tauri external binary. Desktop core functionality is Linux-only; the web assets may build elsewhere, but process controls require Linux.
 
 ## Memory and Paging Lab
