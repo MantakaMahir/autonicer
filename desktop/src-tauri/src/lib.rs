@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
-use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Command};
-use tauri::{AppHandle, Manager};
+use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::{Child, Command, Stdio}, sync::Mutex, thread};
+use tauri::{AppHandle, Manager, State};
+
+struct MonitorProcess(Mutex<Option<Child>>);
+impl Drop for MonitorProcess { fn drop(&mut self) { if let Ok(mut slot)=self.0.lock(){if let Some(mut child)=slot.take(){let _=child.kill();let _=child.wait();}} } }
 
 #[derive(Serialize, Deserialize)]
 pub struct SystemStatus {
@@ -93,10 +96,29 @@ fn process_command(app: AppHandle, command: String, pid: u32, classification: Op
 }
 
 #[tauri::command]
-fn start_monitoring(app: AppHandle) -> Result<String, String> { run_core(&app, &["list", "--json"]) }
+fn update_config(app: AppHandle, values: Vec<String>) -> Result<String, String> {
+    if values.is_empty() || values.iter().any(|v| !v.contains('=') || v.starts_with('-')) { return Err("invalid configuration values".into()); }
+    let allowed = ["sample_interval=", "high_threshold=", "critical_threshold=", "high_samples_required=", "nice_step=", "max_nice=", "cooldown_seconds=", "allow_auto_pause=", "memory_high_available_percent=", "memory_critical_available_percent=", "memory_samples_required="];
+    if values.iter().any(|v| !allowed.iter().any(|prefix| v.starts_with(prefix))) { return Err("unsupported configuration key".into()); }
+    let refs: Vec<&str> = values.iter().map(String::as_str).collect();
+    run_core(&app, &std::iter::once("set-config").chain(refs).collect::<Vec<_>>())
+}
 
 #[tauri::command]
-fn stop_monitoring() -> Result<(), String> { Ok(()) }
+fn start_monitoring(app: AppHandle, monitor: State<'_, MonitorProcess>, dry_run: bool) -> Result<String, String> {
+    let mut slot = monitor.0.lock().map_err(|_| "monitor state unavailable".to_string())?;
+    if slot.as_ref().is_some() { return Ok("monitor already running".into()); }
+    let mut args = vec!["monitor"]; if dry_run { args.push("--dry-run"); }
+    let mut child = Command::new(core_path(&app)?).args(args).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().map_err(|e| e.to_string())?;
+    if let Some(stdout) = child.stdout.take() { thread::spawn(move || { use std::io::BufRead; for line in std::io::BufReader::new(stdout).lines() { let _ = line; } }); }
+    *slot = Some(child); Ok(if dry_run { "dry-run monitor started" } else { "live monitor started" }.into())
+}
+
+#[tauri::command]
+fn stop_monitoring(monitor: State<'_, MonitorProcess>) -> Result<(), String> { let mut slot=monitor.0.lock().map_err(|_| "monitor state unavailable".to_string())?; if let Some(mut child)=slot.take(){let _=child.kill();let _=child.wait();} Ok(()) }
+
+#[tauri::command]
+fn monitor_status(monitor: State<'_, MonitorProcess>) -> Result<bool, String> { let mut slot=monitor.0.lock().map_err(|_| "monitor state unavailable".to_string())?; if let Some(child)=slot.as_mut(){if child.try_wait().map_err(|e|e.to_string())?.is_some(){*slot=None;return Ok(false)}return Ok(true)}Ok(false) }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() { tauri::Builder::default().invoke_handler(tauri::generate_handler![get_system_status,get_processes,get_memory_status,get_memory_candidates,run_pager_simulation,get_history,get_config,process_command,start_monitoring,stop_monitoring]).run(tauri::generate_context!()).expect("error while running AutoNicer"); }
+pub fn run() { tauri::Builder::default().manage(MonitorProcess(Mutex::new(None))).invoke_handler(tauri::generate_handler![get_system_status,get_processes,get_memory_status,get_memory_candidates,run_pager_simulation,get_history,get_config,process_command,update_config,start_monitoring,stop_monitoring,monitor_status]).run(tauri::generate_context!()).expect("error while running AutoNicer"); }
