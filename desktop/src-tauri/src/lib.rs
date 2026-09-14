@@ -30,6 +30,15 @@ pub struct SystemStatus {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct PsiStatus {
+    pub available: bool,
+    #[serde(rename = "someAvg10")]
+    pub some_avg10: f64,
+    #[serde(rename = "fullAvg10")]
+    pub full_avg10: f64,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct MemoryStatus {
     pub timestamp: i64,
     #[serde(rename = "memoryState")]
@@ -52,6 +61,7 @@ pub struct MemoryStatus {
     pub swap_in_per_second: f64,
     #[serde(rename = "swapOutPerSecond")]
     pub swap_out_per_second: f64,
+    pub psi: PsiStatus,
 }
 
 fn core_path(app: &AppHandle) -> Result<PathBuf, String> {

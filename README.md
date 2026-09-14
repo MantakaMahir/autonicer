@@ -58,7 +58,7 @@ npm run tauri:dev --prefix desktop
 npm run tauri:build --prefix desktop
 ```
 
-`desktop/package.json` also provides `dev` for a browser-only Vite preview. Browser mode displays clearly labeled sample telemetry and paging data for UI review. Linux process controls, configuration saves, and live `/proc` values remain disabled; use `./run-desktop.sh` for the real controller.
+`desktop/package.json` also provides `dev` for a browser-only Vite preview. Browser mode cannot access Tauri IPC or Linux `/proc`, so it reports the core as unavailable rather than fabricating runtime data. Use `./run-desktop.sh` for live telemetry and controls.
 
 ## CLI Commands
 

@@ -496,8 +496,16 @@ function Memory({ memory }: { memory: MemoryStatus | null }) {
           />
           <Metric
             label="PSI"
-            value="available"
-            detail="optional kernel interface"
+            value={
+              memory.psi.available
+                ? `${memory.psi.someAvg10.toFixed(2)}%`
+                : "N/A"
+            }
+            detail={
+              memory.psi.available
+                ? `some avg10 / full ${memory.psi.fullAvg10.toFixed(2)}%`
+                : "kernel interface unavailable"
+            }
           />
         </div>
       </section>

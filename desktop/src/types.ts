@@ -38,6 +38,11 @@ export type MemoryStatus = {
   majorFaultsPerSecond: number;
   swapInPerSecond: number;
   swapOutPerSecond: number;
+  psi: {
+    available: boolean;
+    someAvg10: number;
+    fullAvg10: number;
+  };
 };
 export type PagerStep = {
   reference: number;
