@@ -229,6 +229,14 @@ int main(int argc, char **argv) {
       free(items);
       return 1;
     }
+    if (all) {
+      for (size_t i = 0; i < display_count; i++) {
+        display[i].last_utime = display[i].info.utime;
+        display[i].last_stime = display[i].info.stime;
+        display[i].has_cpu_sample = 1;
+      }
+      sleep(config.sample_interval);
+    }
     if (json)
       puts("[");
     size_t printed = 0;
@@ -245,8 +253,14 @@ int main(int argc, char **argv) {
         display[i].last_nice = registered->last_nice;
       }
       ProcessInfo p;
-      if (process_read(display[i].info.pid, &p) == 0)
-        display[i].info = p;
+      if (process_read(display[i].info.pid, &p) == 0) {
+        if (all)
+          process_update_cpu(&display[i], &p, config.sample_interval);
+        else
+          display[i].info = p;
+      } else if (all) {
+        continue;
+      }
       if (json)
         printf("%s{\"pid\":%d,\"name\":\"%s\",\"cpuPercent\":%.1f,\"nice\":%d,"
                "\"state\":\"%c\",\"rssKb\":%llu,\"swapKb\":%llu,"

@@ -10,4 +10,18 @@ ${CC:-cc} -std=c17 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Wpedantic -Iinclude 
 ./autonicer pager-demo --algorithm lru --frames 3 --reference '1,2,3,1W,4,2' >/tmp/autonicer-lru.json
 ./autonicer pager-demo --algorithm clock --frames 3 --reference '1,2,3,1W,4,2' >/tmp/autonicer-clock.json
 python3 -c 'import json; m=json.load(open("/tmp/autonicer-memory.json")); p=json.load(open("/tmp/autonicer-processes.json")); results=[json.load(open(x)) for x in ("/tmp/autonicer-pager.json","/tmp/autonicer-lru.json","/tmp/autonicer-clock.json")]; assert "availableKb" in m and {"available","someAvg10","fullAvg10"} <= m["psi"].keys() and all(x["name"] not in {"systemd","sd-pam","dbus-daemon","pipewire","wireplumber"} for x in p) and [x["algorithm"] for x in results] == ["fifo","lru","clock"] and all(x["faults"] > 0 and len(x["steps"]) == 6 for x in results)'
+./demo/cpu_hog >/tmp/autonicer-cpu-hog.log 2>&1 & cpu_pid=$!
+trap 'kill "$cpu_pid" 2>/dev/null || true' EXIT
+./autonicer list --all --json >/tmp/autonicer-cpu-processes.json
+python3 - "$cpu_pid" <<'PY'
+import json
+import sys
+rows = json.load(open("/tmp/autonicer-cpu-processes.json"))
+pid = int(sys.argv[1])
+row = next(item for item in rows if item["pid"] == pid)
+assert row["cpuPercent"] > 0
+PY
+kill "$cpu_pid" 2>/dev/null || true
+wait "$cpu_pid" 2>/dev/null || true
+trap - EXIT
 echo "integration smoke tests passed"
