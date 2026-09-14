@@ -305,6 +305,7 @@ function Processes({
   const act = async (command: string, pid: number, classification?: string) => {
     try {
       await core.command(command, pid, classification);
+      setActionError("");
       await refresh();
     } catch (e) {
       setActionError(String(e));

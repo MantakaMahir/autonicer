@@ -301,8 +301,12 @@ int main(int argc, char **argv) {
       result = -1;
     if (!result)
       result = registry_classify(&items, &count, pid, cls, getuid());
-  } else if (!strcmp(argv[1], "protect") || !strcmp(argv[1], "unprotect"))
-    result = registry_protect(items, count, pid, !strcmp(argv[1], "protect"));
+  } else if (!strcmp(argv[1], "protect") || !strcmp(argv[1], "unprotect")) {
+    if (!strcmp(argv[1], "protect") && !registry_find(items, count, pid))
+      result = registry_classify(&items, &count, pid, PROCESS_NORMAL, getuid());
+    if (!result)
+      result = registry_protect(items, count, pid, !strcmp(argv[1], "protect"));
+  }
   else if (!strcmp(argv[1], "restore")) {
     ManagedProcess *m = registry_find(items, count, pid);
     if (!m || !m->priority_changed)
