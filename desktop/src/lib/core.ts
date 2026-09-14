@@ -32,8 +32,4 @@ export const core = {
   command: (command: string, pid: number, classification?: string) =>
     call<string>("process_command", { command, pid, classification }),
   updateConfig: (values: string[]) => call<string>("update_config", { values }),
-  startMonitoring: (dryRun: boolean) =>
-    call<string>("start_monitoring", { dryRun }),
-  stopMonitoring: () => call<void>("stop_monitoring"),
-  monitorStatus: () => call<boolean>("monitor_status"),
 };

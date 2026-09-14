@@ -52,25 +52,20 @@ function App() {
     [history, setHistory] = useState(""),
     [cpuHistory, setCpuHistory] = useState<number[]>([]),
     [connected, setConnected] = useState(false),
-    [monitoring, setMonitoring] = useState(false),
-    [polling, setPolling] = useState(true),
-    [dryRun, setDryRun] = useState(false),
     [error, setError] = useState("");
   const refresh = async () => {
     try {
-      const [s, m, p, h, r] = await Promise.all([
+      const [s, m, p, h] = await Promise.all([
         core.status(),
         core.memory(),
         core.processes(),
         core.history(),
-        core.monitorStatus(),
       ]);
       setStatus(s);
       setMemory(m);
       setProcesses(p);
       setHistory(h);
       setCpuHistory((x) => [...x, s.cpuPercent].slice(-60));
-      setMonitoring(r);
       setConnected(true);
       setError("");
     } catch (e) {
@@ -79,27 +74,10 @@ function App() {
     }
   };
   useEffect(() => {
-    if (!polling) return;
     refresh();
     const id = setInterval(refresh, 2500);
     return () => clearInterval(id);
-  }, [polling]);
-  const monitor = async () => {
-    try {
-      if (monitoring) {
-        await core.stopMonitoring();
-        setMonitoring(false);
-        setPolling(false);
-      } else {
-        await core.startMonitoring(dryRun);
-        setMonitoring(true);
-        setPolling(true);
-        await refresh();
-      }
-    } catch (e) {
-      setError(String(e));
-    }
-  };
+  }, []);
   return (
     <div className="shell">
       <aside>
@@ -134,10 +112,8 @@ function App() {
                </b>
                <small>
                  {core.isDesktopShell
-                   ? monitoring
-                     ? "Controller running"
-                     : "Telemetry available"
-                   : "Sample telemetry only"}
+                    ? "Controller running"
+                    : "Live data unavailable"}
                </small>
             </div>
           </div>
@@ -150,23 +126,7 @@ function App() {
             <h1>{pages.find((x) => x[0] === page)?.[1]}</h1>
           </div>
           <div className="header-actions">
-            <Badge tone={monitoring ? (dryRun ? "amber" : "green") : "neutral"}>
-              {monitoring
-                ? dryRun
-                  ? "DRY RUN"
-                  : "MONITORING"
-                : "MONITOR STOPPED"}
-            </Badge>
-             <button
-               className="outline"
-               disabled={!core.isDesktopShell}
-               onClick={() => setDryRun((x) => !x)}
-             >
-              {dryRun ? "Live mode" : "Dry-run mode"}
-            </button>
-             <button className="outline" disabled={!core.isDesktopShell} onClick={monitor}>
-              {monitoring ? "Stop monitor" : "Start monitor"}
-            </button>
+            <Badge tone="green">MONITORING</Badge>
           </div>
         </header>
         {error && <div className="error">{error}</div>}
@@ -181,7 +141,7 @@ function App() {
         {page === "processes" && (
           <Processes processes={processes} refresh={refresh} />
         )}{" "}
-        {page === "memory" && <Memory memory={memory} polling={polling} />}{" "}
+        {page === "memory" && <Memory memory={memory} />}{" "}
         {page === "paging" && <Paging />}
         {page === "policies" && <Policies />}
         {page === "settings" && <Settings connected={connected} />}
@@ -399,20 +359,13 @@ function Processes({
     </section>
   );
 }
-function Memory({
-  memory,
-  polling,
-}: {
-  memory: MemoryStatus | null;
-  polling: boolean;
-}) {
+function Memory({ memory }: { memory: MemoryStatus | null }) {
   if (!memory)
     return (
       <section className="panel empty-page">
         Waiting for OS memory data.
       </section>
     );
-  const age = Math.max(0, Math.floor(Date.now() / 1000 - memory.timestamp));
   return (
     <>
       <section className="metrics">
@@ -444,9 +397,6 @@ function Memory({
             <p className="eyebrow">LIVE LINUX MEMORY</p>
             <h2>Freshness and counters</h2>
           </div>
-          <Badge tone={!polling ? "amber" : age < 8 ? "green" : "red"}>
-            {!polling ? "FROZEN" : age < 8 ? `FRESH ${age}s` : `STALE ${age}s`}
-          </Badge>
         </div>
         <p className="sample-time">
           Latest OS sample:{" "}
@@ -668,7 +618,7 @@ function Settings({ connected }: { connected: boolean }) {
            <span>
              {core.isDesktopShell
                ? "Restricted semantic Tauri bridge"
-               : "Browser preview with sample data"}
+               : "Browser preview; live OS data requires Tauri"}
            </span>
          </div>
          <Badge tone={available ? "green" : core.isDesktopShell ? "red" : "blue"}>

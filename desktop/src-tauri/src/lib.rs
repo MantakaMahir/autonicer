@@ -6,7 +6,7 @@ use std::{
     sync::Mutex,
     thread,
 };
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 
 struct MonitorProcess(Mutex<Option<Child>>);
 impl Drop for MonitorProcess {
@@ -238,79 +238,49 @@ async fn update_config(app: AppHandle, values: Vec<String>) -> Result<String, St
     run_core_async(app, args).await
 }
 
-#[tauri::command]
-fn start_monitoring(
-    app: AppHandle,
-    monitor: State<'_, MonitorProcess>,
-    dry_run: bool,
-) -> Result<String, String> {
+fn launch_monitor(app: &AppHandle, monitor: &MonitorProcess) -> Result<(), String> {
     let mut slot = monitor
         .0
         .lock()
         .map_err(|_| "monitor state unavailable".to_string())?;
     if slot.as_ref().is_some() {
-        return Ok("monitor already running".into());
+        return Ok(());
     }
-    let mut args = vec!["monitor"];
-    if dry_run {
-        args.push("--dry-run");
-    }
-    let mut child = Command::new(core_path(&app)?)
-        .args(args)
+    let mut child = Command::new(core_path(app)?)
+        .arg("monitor")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| e.to_string())?;
-    if let Some(stdout) = child.stdout.take() {
+    if let Some(output) = child.stdout.take() {
         thread::spawn(move || {
             use std::io::BufRead;
-            for line in std::io::BufReader::new(stdout).lines() {
+            for line in std::io::BufReader::new(output).lines() {
+                let _ = line;
+            }
+        });
+    }
+    if let Some(output) = child.stderr.take() {
+        thread::spawn(move || {
+            use std::io::BufRead;
+            for line in std::io::BufReader::new(output).lines() {
                 let _ = line;
             }
         });
     }
     *slot = Some(child);
-    Ok(if dry_run {
-        "dry-run monitor started"
-    } else {
-        "live monitor started"
-    }
-    .into())
-}
-
-#[tauri::command]
-fn stop_monitoring(monitor: State<'_, MonitorProcess>) -> Result<(), String> {
-    let mut slot = monitor
-        .0
-        .lock()
-        .map_err(|_| "monitor state unavailable".to_string())?;
-    if let Some(mut child) = slot.take() {
-        let _ = child.kill();
-        let _ = child.wait();
-    }
     Ok(())
-}
-
-#[tauri::command]
-fn monitor_status(monitor: State<'_, MonitorProcess>) -> Result<bool, String> {
-    let mut slot = monitor
-        .0
-        .lock()
-        .map_err(|_| "monitor state unavailable".to_string())?;
-    if let Some(child) = slot.as_mut() {
-        if child.try_wait().map_err(|e| e.to_string())?.is_some() {
-            *slot = None;
-            return Ok(false);
-        }
-        return Ok(true);
-    }
-    Ok(false)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(MonitorProcess(Mutex::new(None)))
+        .setup(|app| {
+            let monitor = app.state::<MonitorProcess>();
+            launch_monitor(app.handle(), &monitor).map_err(std::io::Error::other)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_system_status,
             get_processes,
@@ -320,10 +290,7 @@ pub fn run() {
             get_history,
             get_config,
             process_command,
-            update_config,
-            start_monitoring,
-            stop_monitoring,
-            monitor_status
+            update_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running AutoNicer");

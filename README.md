@@ -174,6 +174,8 @@ The application architecture is:
 React + TypeScript -> Tauri Rust bridge -> approved AutoNicer C executable -> Linux /proc
 ```
 
+The desktop app launches the authoritative C monitor automatically during Tauri startup. The UI continuously polls fresh core samples and has no start/stop monitor control. The terminal command `./autonicer monitor` remains available for standalone CLI use.
+
 - **Overview**: live CPU percentage, controller state, process counts, protection count, CPU history, and recent audit entries.
 - **Processes**: live user-owned application process data including PID, name, CPU, RSS, swap, state, classification, and protection. Common desktop/system session services are filtered from discovery. Controls classify, protect, restore, and resume through the core.
 - **Memory**: available/total RAM, memory pressure state, swap, page-fault rates, swap rates, and sample timestamp.
