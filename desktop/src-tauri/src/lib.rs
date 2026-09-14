@@ -3,7 +3,13 @@ use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Command};
 use tauri::{AppHandle, Manager};
 
 #[derive(Serialize, Deserialize)]
-pub struct SystemStatus { pub cpu_percent: f64, pub load_state: String, pub timestamp: i64 }
+pub struct SystemStatus {
+    #[serde(rename = "cpuPercent")]
+    pub cpu_percent: f64,
+    #[serde(rename = "loadState")]
+    pub load_state: String,
+    pub timestamp: i64,
+}
 
 fn core_path(app: &AppHandle) -> Result<PathBuf, String> {
     let development = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../autonicer");
