@@ -115,7 +115,11 @@ async fn get_system_status(app: AppHandle) -> Result<SystemStatus, String> {
 
 #[tauri::command]
 async fn get_processes(app: AppHandle) -> Result<serde_json::Value, String> {
-    let output = run_core_async(app, vec!["list".into(), "--json".into()]).await?;
+    let output = run_core_async(
+        app,
+        vec!["list".into(), "--all".into(), "--json".into()],
+    )
+    .await?;
     serde_json::from_str(output.trim()).map_err(|e| e.to_string())
 }
 

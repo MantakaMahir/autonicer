@@ -162,10 +162,7 @@ function App() {
         {page === "memory" && <Memory memory={memory} />}{" "}
         {page === "paging" && <Paging />}
         {page === "activity" && (
-          <section className="panel activity-page">
-            <h2>Controller activity</h2>
-            <pre className="history-full">{history || "No activity yet."}</pre>
-          </section>
+          <Activity history={history} status={status} memory={memory} />
         )}
         {page === "policies" && <Policies />}
         {page === "settings" && <Settings connected={connected} />}
@@ -260,6 +257,43 @@ function Dashboard({
     </>
   );
 }
+function Activity({
+  history,
+  status,
+  memory,
+}: {
+  history: string;
+  status: SystemStatus | null;
+  memory: MemoryStatus | null;
+}) {
+  return (
+    <>
+      <section className="metrics">
+        <Metric
+          label="Current CPU"
+          value={status ? `${status.cpuPercent.toFixed(1)}%` : "--"}
+          detail="live /proc/stat sample"
+        />
+        <Metric
+          label="Load state"
+          value={status?.loadState ?? "--"}
+          detail="C-core decision state"
+        />
+        <Metric
+          label="Available memory"
+          value={memory ? `${memory.availablePercent.toFixed(1)}%` : "--"}
+          detail="live /proc/meminfo sample"
+        />
+      </section>
+      <section className="panel activity-page">
+        <h2>Controller activity</h2>
+        <pre className="history-full">
+          {history || "No controller actions yet. Live telemetry is shown above."}
+        </pre>
+      </section>
+    </>
+  );
+}
 function Processes({
   processes,
   refresh,
@@ -281,7 +315,7 @@ function Processes({
       <div className="panel-head">
         <div>
           <p className="eyebrow">LIVE PROCESS DATA AND CONTROLS</p>
-          <h2>Registered processes</h2>
+            <h2>Running user processes</h2>
         </div>
         <Badge>{processes.length}</Badge>
       </div>
@@ -366,8 +400,8 @@ function Processes({
         </table>
         {!processes.length && (
           <div className="empty table-empty">
-            <b>No registered processes</b>
-            <span>Register one with the CLI first.</span>
+            <b>No running user processes</b>
+            <span>Processes will appear when the core refreshes /proc.</span>
           </div>
         )}
       </div>

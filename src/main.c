@@ -29,7 +29,7 @@ static void help(void) {
   puts("autonicer monitor [--dry-run]\nautonicer sample\nautonicer memory "
        "[--json]\nautonicer memory-candidates [--json]\nautonicer pager-demo "
        "--algorithm fifo|lru|clock --frames N --reference LIST\nautonicer "
-       "list|status [--json]|history|config\nautonicer classify PID "
+       "list|status [--json|--all --json]|history|config\nautonicer classify PID "
        "normal|background|critical\nautonicer protect|unprotect PID\nautonicer "
        "restore|resume PID");
 }
@@ -220,36 +220,55 @@ int main(int argc, char **argv) {
     return result ? 1 : 0;
   }
   if (!strcmp(argv[1], "list") || !strcmp(argv[1], "status")) {
-    int json = argc > 2 && !strcmp(argv[2], "--json");
+    int all = argc > 2 && !strcmp(argv[2], "--all");
+    int json = (argc > 2 && !strcmp(argv[2], "--json")) ||
+               (all && argc > 3 && !strcmp(argv[3], "--json"));
+    ManagedProcess *display = items;
+    size_t display_count = count;
+    if (all && (!json || process_discover_owned(&display, &display_count))) {
+      free(items);
+      return 1;
+    }
     if (json)
       puts("[");
-    for (size_t i = 0; i < count; i++) {
+    for (size_t i = 0; i < display_count; i++) {
+      ManagedProcess *registered =
+          registry_find(items, count, display[i].info.pid);
+      if (all && registered) {
+        display[i].classification = registered->classification;
+        display[i].protected_flag = registered->protected_flag;
+        display[i].priority_changed = registered->priority_changed;
+        display[i].paused_by_autonicer = registered->paused_by_autonicer;
+        display[i].last_nice = registered->last_nice;
+      }
       ProcessInfo p;
-      if (process_read(items[i].info.pid, &p) == 0)
-        items[i].info = p;
+      if (process_read(display[i].info.pid, &p) == 0)
+        display[i].info = p;
       if (json)
         printf("%s{\"pid\":%d,\"name\":\"%s\",\"cpuPercent\":%.1f,\"nice\":%d,"
                "\"state\":\"%c\",\"rssKb\":%llu,\"swapKb\":%llu,"
                "\"minorFaultsPerSecond\":%.2f,\"majorFaultsPerSecond\":%.2f,"
                "\"classification\":\"%s\",\"protected\":%s,\"priorityChanged\":"
                "%s,\"paused\":%s}\n",
-               i ? "," : "", items[i].info.pid, items[i].info.name,
-               items[i].info.recent_cpu_percent, items[i].info.nice_value,
-               items[i].info.state, items[i].info.rss_kb, items[i].info.swap_kb,
-               items[i].info.minor_faults_per_second,
-               items[i].info.major_faults_per_second,
-               class_name(items[i].classification),
-               items[i].protected_flag ? "true" : "false",
-               items[i].priority_changed ? "true" : "false",
-               items[i].paused_by_autonicer ? "true" : "false");
+               i ? "," : "", display[i].info.pid, display[i].info.name,
+               display[i].info.recent_cpu_percent, display[i].info.nice_value,
+               display[i].info.state, display[i].info.rss_kb,
+               display[i].info.swap_kb, display[i].info.minor_faults_per_second,
+               display[i].info.major_faults_per_second,
+               class_name(display[i].classification),
+               display[i].protected_flag ? "true" : "false",
+               display[i].priority_changed ? "true" : "false",
+               display[i].paused_by_autonicer ? "true" : "false");
       else
-        printf("%d | %s | nice=%d | %s | %s\n", items[i].info.pid,
-               items[i].info.name, items[i].last_nice,
-               class_name(items[i].classification),
-               items[i].protected_flag ? "PROTECTED" : "-");
+        printf("%d | %s | nice=%d | %s | %s\n", display[i].info.pid,
+               display[i].info.name, display[i].last_nice,
+               class_name(display[i].classification),
+               display[i].protected_flag ? "PROTECTED" : "-");
     }
     if (json)
       puts("]");
+    if (all)
+      free(display);
     free(items);
     return 0;
   }

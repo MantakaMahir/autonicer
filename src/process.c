@@ -1,9 +1,51 @@
 #include "process.h"
+#include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+int process_discover_owned(ManagedProcess **out, size_t *count) {
+  DIR *dir = opendir("/proc");
+  struct dirent *entry;
+  ManagedProcess *items = NULL;
+  size_t used = 0, capacity = 0;
+  uid_t owner = getuid();
+  if (!dir)
+    return -1;
+  while ((entry = readdir(dir))) {
+    char *end;
+    long value;
+    ProcessInfo info;
+    ManagedProcess *next;
+    if (entry->d_name[0] < '0' || entry->d_name[0] > '9')
+      continue;
+    errno = 0;
+    value = strtol(entry->d_name, &end, 10);
+    if (errno || *end || value <= 0 || value > 2147483647L ||
+        process_read((pid_t)value, &info) || info.uid != owner)
+      continue;
+    if (used == capacity) {
+      capacity = capacity ? capacity * 2 : 32;
+      next = realloc(items, capacity * sizeof *items);
+      if (!next) {
+        free(items);
+        closedir(dir);
+        return -1;
+      }
+      items = next;
+    }
+    memset(&items[used], 0, sizeof items[used]);
+    items[used].info = info;
+    items[used].classification = PROCESS_NORMAL;
+    used++;
+  }
+  closedir(dir);
+  *out = items;
+  *count = used;
+  return 0;
+}
 
 int process_read(pid_t pid, ProcessInfo *p) {
   char path[64], line[4096], *close;
