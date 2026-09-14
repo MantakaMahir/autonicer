@@ -178,7 +178,6 @@ React + TypeScript -> Tauri Rust bridge -> approved AutoNicer C executable -> Li
 - **Processes**: live user-owned application process data including PID, name, CPU, RSS, swap, state, classification, and protection. Common desktop/system session services are filtered from discovery. Controls classify, protect, restore, and resume through the core.
 - **Memory**: available/total RAM, memory pressure state, swap, page-fault rates, swap rates, and sample timestamp.
 - **Paging Lab**: user-space FIFO, LRU, and Clock simulation with configurable frames and page references. It never changes Linux memory mappings.
-- **Activity**: controller history plus current CPU, load state, and available-memory telemetry, including before any action has been logged.
 - **Policies**: core configuration editor with validation through the Rust bridge.
 - **Settings**: Tauri-to-core connection status.
 
@@ -207,10 +206,6 @@ Use `./run-desktop.sh`. A plain Vite browser session cannot invoke Tauri command
 **Processes shows no registered entries**
 
 The Processes page now displays live user-owned processes. To enable automatic control for one, classify it explicitly, for example `./autonicer classify PID background`.
-
-**Activity has no actions**
-
-That is normal before the monitor changes a process. Current telemetry remains visible; run the controlled CPU demo in dry-run mode to generate audit output.
 
 **A priority restore fails**
 

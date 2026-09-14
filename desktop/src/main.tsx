@@ -13,7 +13,6 @@ const pages = [
   ["processes", "Processes"],
   ["memory", "Memory"],
   ["paging", "Paging Lab"],
-  ["activity", "Activity"],
   ["policies", "Policies"],
   ["settings", "Settings"],
 ];
@@ -175,9 +174,6 @@ function App() {
         )}{" "}
         {page === "memory" && <Memory memory={memory} />}{" "}
         {page === "paging" && <Paging />}
-        {page === "activity" && (
-          <Activity history={history} status={status} memory={memory} />
-        )}
         {page === "policies" && <Policies />}
         {page === "settings" && <Settings connected={connected} />}
       </main>
@@ -266,43 +262,6 @@ function Dashboard({
         <pre>
           {history.split("\n").filter(Boolean).slice(-5).join("\n") ||
             "No actions yet."}
-        </pre>
-      </section>
-    </>
-  );
-}
-function Activity({
-  history,
-  status,
-  memory,
-}: {
-  history: string;
-  status: SystemStatus | null;
-  memory: MemoryStatus | null;
-}) {
-  return (
-    <>
-      <section className="metrics">
-        <Metric
-          label="Current CPU"
-          value={status ? `${status.cpuPercent.toFixed(1)}%` : "--"}
-          detail="live /proc/stat sample"
-        />
-        <Metric
-          label="Load state"
-          value={status?.loadState ?? "--"}
-          detail="C-core decision state"
-        />
-        <Metric
-          label="Available memory"
-          value={memory ? `${memory.availablePercent.toFixed(1)}%` : "--"}
-          detail="live /proc/meminfo sample"
-        />
-      </section>
-      <section className="panel activity-page">
-        <h2>Controller activity</h2>
-        <pre className="history-full">
-          {history || "No controller actions yet. Live telemetry is shown above."}
         </pre>
       </section>
     </>
