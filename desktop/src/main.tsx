@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { core } from "./lib/core";
 import type {
@@ -53,6 +53,7 @@ function App() {
     [cpuHistory, setCpuHistory] = useState<number[]>([]),
     [connected, setConnected] = useState(false),
     [monitoring, setMonitoring] = useState(false),
+    [polling, setPolling] = useState(true),
     [dryRun, setDryRun] = useState(false),
     [error, setError] = useState("");
   const refresh = async () => {
@@ -78,15 +79,23 @@ function App() {
     }
   };
   useEffect(() => {
+    if (!polling) return;
     refresh();
     const id = setInterval(refresh, 2500);
     return () => clearInterval(id);
-  }, []);
+  }, [polling]);
   const monitor = async () => {
     try {
-      if (monitoring) await core.stopMonitoring();
-      else await core.startMonitoring(dryRun);
-      await refresh();
+      if (monitoring) {
+        await core.stopMonitoring();
+        setMonitoring(false);
+        setPolling(false);
+      } else {
+        await core.startMonitoring(dryRun);
+        setMonitoring(true);
+        setPolling(true);
+        await refresh();
+      }
     } catch (e) {
       setError(String(e));
     }
@@ -172,7 +181,7 @@ function App() {
         {page === "processes" && (
           <Processes processes={processes} refresh={refresh} />
         )}{" "}
-        {page === "memory" && <Memory memory={memory} />}{" "}
+        {page === "memory" && <Memory memory={memory} polling={polling} />}{" "}
         {page === "paging" && <Paging />}
         {page === "policies" && <Policies />}
         {page === "settings" && <Settings connected={connected} />}
@@ -390,7 +399,13 @@ function Processes({
     </section>
   );
 }
-function Memory({ memory }: { memory: MemoryStatus | null }) {
+function Memory({
+  memory,
+  polling,
+}: {
+  memory: MemoryStatus | null;
+  polling: boolean;
+}) {
   if (!memory)
     return (
       <section className="panel empty-page">
@@ -429,8 +444,8 @@ function Memory({ memory }: { memory: MemoryStatus | null }) {
             <p className="eyebrow">LIVE LINUX MEMORY</p>
             <h2>Freshness and counters</h2>
           </div>
-          <Badge tone={age < 8 ? "green" : "red"}>
-            {age < 8 ? `FRESH ${age}s` : `STALE ${age}s`}
+          <Badge tone={!polling ? "amber" : age < 8 ? "green" : "red"}>
+            {!polling ? "FROZEN" : age < 8 ? `FRESH ${age}s` : `STALE ${age}s`}
           </Badge>
         </div>
         <p className="sample-time">
@@ -477,6 +492,7 @@ function Paging() {
     [r, setR] = useState("7,0,1,2,0,3,0,4"),
     [result, setResult] = useState<PagerResult | null>(null),
     [step, setStep] = useState(0);
+  const framesInput = useRef<HTMLInputElement>(null);
   const run = async () => setResult(await core.pager(a, f, r));
   const current = result?.steps[step];
   return (
@@ -500,10 +516,12 @@ function Paging() {
         <label>
           Frames
           <input
+            ref={framesInput}
             type="number"
             value={f}
             min="1"
             max="128"
+            onFocus={() => framesInput.current?.select()}
             onChange={(e) => setF(Number(e.target.value))}
           />
         </label>
@@ -539,6 +557,15 @@ function Paging() {
               {current?.fault ? "PAGE FAULT" : "PAGE HIT"} page{" "}
               {current?.reference}
             </span>
+            <Badge
+              tone={current && typeof current.writeBack === "boolean" ? "blue" : "red"}
+            >
+              {current && typeof current.writeBack === "boolean"
+                ? current.writeBack
+                  ? "WRITE-BACK SUCCESS"
+                  : "WRITE-BACK NOT REQUIRED"
+                : "WRITE-BACK UNAVAILABLE"}
+            </Badge>
             <button disabled={!step} onClick={() => setStep(step - 1)}>
               Previous
             </button>
