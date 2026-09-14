@@ -1,16 +1,18 @@
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, process::Command};
+use std::{os::unix::fs::PermissionsExt, path::PathBuf, process::Command};
 use tauri::{AppHandle, Manager};
 
 #[derive(Serialize, Deserialize)]
 pub struct SystemStatus { pub cpu_percent: f64, pub load_state: String, pub timestamp: i64 }
 
 fn core_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let development = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../autonicer");
+    if development.is_file() { return Ok(development); }
     let resources = app.path().resource_dir().map_err(|e| e.to_string())?;
     if let Ok(entries) = std::fs::read_dir(&resources) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.file_name().and_then(|n| n.to_str()).map(|n| n.starts_with("autonicer-")).unwrap_or(false) { return Ok(path); }
+            if path.is_file() && path.metadata().map(|m| m.permissions().mode() & 0o111 != 0).unwrap_or(false) && path.file_name().and_then(|n| n.to_str()).map(|n| n.starts_with("autonicer-")).unwrap_or(false) { return Ok(path); }
         }
     }
     let cwd = std::env::current_dir().map_err(|e| e.to_string())?.join("../autonicer");
