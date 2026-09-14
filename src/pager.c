@@ -3,6 +3,94 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct {int page,dirty,referenced,last_used;} Frame;
-static int choose_victim(Frame*f,int n,const char*a,int*clock){if(!strcmp(a,"fifo")){int v=*clock;*clock=(*clock+1)%n;return v;}if(!strcmp(a,"lru")){int v=0;for(int i=1;i<n;i++)if(f[i].last_used<f[v].last_used)v=i;return v;}for(;;){if(!f[*clock].referenced){int v=*clock;*clock=(*clock+1)%n;return v;}f[*clock].referenced=0;*clock=(*clock+1)%n;}}
-int pager_run(const char*algorithm,int n,const char*reference,FILE*out){if(n<1||n>128||(!strcmp(algorithm,"fifo")||!strcmp(algorithm,"lru")||!strcmp(algorithm,"clock"))==0)return -1;Frame*f=calloc((size_t)n,sizeof *f);if(!f)return -1;for(int i=0;i<n;i++)f[i]=(Frame){-1,0,0,0};char*copy=strdup(reference),*tok=strtok(copy,", ");int clock=0,used=0,hits=0,faults=0,evictions=0,writebacks=0,step=0;fprintf(out,"{\"algorithm\":\"%s\",\"frames\":%d,\"steps\":[",algorithm,n);int first=1;while(tok){char*end;long page=strtol(tok,&end,10);int write=*end=='W'||*end=='w',frame=-1,victim=-1,is_hit=0,writeback=0;for(int i=0;i<n;i++)if(f[i].page==page)frame=i;if(frame>=0){is_hit=1;hits++;f[frame].referenced=1;f[frame].last_used=step;if(write)f[frame].dirty=1;}else{faults++;if(used<n)frame=used++;else{victim=choose_victim(f,n,algorithm,&clock);frame=victim;evictions++;if(f[victim].dirty){writebacks++;writeback=1;}}f[frame]=(Frame){(int)page,write,1,step};}fprintf(out,"%s{\"reference\":%d,\"write\":%s,\"hit\":%s,\"fault\":%s,\"frame\":%d,\"victim\":%d,\"writeBack\":%s,\"frames\":[",first?"":",",(int)page,write?"true":"false",is_hit?"true":"false",is_hit?"false":"true",frame,victim,writeback?"true":"false");first=0;for(int i=0;i<n;i++)fprintf(out,"%s%d",i?",":"",f[i].page);fprintf(out,"]}");step++;tok=strtok(NULL,", ");}fprintf(out,"],\"hits\":%d,\"faults\":%d,\"evictions\":%d,\"writeBacks\":%d}\n",hits,faults,evictions,writebacks);free(copy);free(f);return 0;}
+typedef struct {
+  int page, dirty, referenced, last_used;
+} Frame;
+static int choose_victim(Frame *f, int n, const char *a, int *clock) {
+  if (!strcmp(a, "fifo")) {
+    int v = *clock;
+    *clock = (*clock + 1) % n;
+    return v;
+  }
+  if (!strcmp(a, "lru")) {
+    int v = 0;
+    for (int i = 1; i < n; i++)
+      if (f[i].last_used < f[v].last_used)
+        v = i;
+    return v;
+  }
+  for (;;) {
+    if (!f[*clock].referenced) {
+      int v = *clock;
+      *clock = (*clock + 1) % n;
+      return v;
+    }
+    f[*clock].referenced = 0;
+    *clock = (*clock + 1) % n;
+  }
+}
+int pager_run(const char *algorithm, int n, const char *reference, FILE *out) {
+  if (n < 1 || n > 128 ||
+      (!strcmp(algorithm, "fifo") || !strcmp(algorithm, "lru") ||
+       !strcmp(algorithm, "clock")) == 0)
+    return -1;
+  Frame *f = calloc((size_t)n, sizeof *f);
+  if (!f)
+    return -1;
+  for (int i = 0; i < n; i++)
+    f[i] = (Frame){-1, 0, 0, 0};
+  char *copy = strdup(reference), *tok = strtok(copy, ", ");
+  int clock = 0, used = 0, hits = 0, faults = 0, evictions = 0, writebacks = 0,
+      step = 0;
+  fprintf(out, "{\"algorithm\":\"%s\",\"frames\":%d,\"steps\":[", algorithm, n);
+  int first = 1;
+  while (tok) {
+    char *end;
+    long page = strtol(tok, &end, 10);
+    int write = *end == 'W' || *end == 'w', frame = -1, victim = -1, is_hit = 0,
+        writeback = 0;
+    for (int i = 0; i < n; i++)
+      if (f[i].page == page)
+        frame = i;
+    if (frame >= 0) {
+      is_hit = 1;
+      hits++;
+      f[frame].referenced = 1;
+      f[frame].last_used = step;
+      if (write)
+        f[frame].dirty = 1;
+    } else {
+      faults++;
+      if (used < n)
+        frame = used++;
+      else {
+        victim = choose_victim(f, n, algorithm, &clock);
+        frame = victim;
+        evictions++;
+        if (f[victim].dirty) {
+          writebacks++;
+          writeback = 1;
+        }
+      }
+      f[frame] = (Frame){(int)page, write, 1, step};
+    }
+    fprintf(out,
+            "%s{\"reference\":%d,\"write\":%s,\"hit\":%s,\"fault\":%s,"
+            "\"frame\":%d,\"victim\":%d,\"writeBack\":%s,\"frames\":[",
+            first ? "" : ",", (int)page, write ? "true" : "false",
+            is_hit ? "true" : "false", is_hit ? "false" : "true", frame, victim,
+            writeback ? "true" : "false");
+    first = 0;
+    for (int i = 0; i < n; i++)
+      fprintf(out, "%s%d", i ? "," : "", f[i].page);
+    fprintf(out, "]}");
+    step++;
+    tok = strtok(NULL, ", ");
+  }
+  fprintf(out,
+          "],\"hits\":%d,\"faults\":%d,\"evictions\":%d,\"writeBacks\":%d}\n",
+          hits, faults, evictions, writebacks);
+  free(copy);
+  free(f);
+  return 0;
+}

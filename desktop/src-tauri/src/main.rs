@@ -1,1 +1,3 @@
-fn main() { autonicer_desktop_lib::run(); }
+fn main() {
+    autonicer_desktop_lib::run();
+}
