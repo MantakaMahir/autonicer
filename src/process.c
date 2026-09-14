@@ -6,6 +6,26 @@
 #include <string.h>
 #include <unistd.h>
 
+int process_is_system_service(const ProcessInfo *p) {
+  static const char *const exact[] = {
+      "systemd",       "sd-pam",       "dbus-daemon", "dbus-broker",
+      "pipewire",      "pipewire-pulse", "wireplumber", "pulseaudio",
+      "gpg-agent",     "ssh-agent",    "gnome-keyring-daemon",
+      "at-spi-bus-launcher",
+  };
+  static const char *const prefixes[] = {
+      "systemd-", "xdg-desktop-portal", "gvfsd", "tracker-",
+  };
+  size_t i;
+  for (i = 0; i < sizeof exact / sizeof exact[0]; i++)
+    if (!strcmp(p->name, exact[i]))
+      return 1;
+  for (i = 0; i < sizeof prefixes / sizeof prefixes[0]; i++)
+    if (!strncmp(p->name, prefixes[i], strlen(prefixes[i])))
+      return 1;
+  return 0;
+}
+
 int process_discover_owned(ManagedProcess **out, size_t *count) {
   DIR *dir = opendir("/proc");
   struct dirent *entry;

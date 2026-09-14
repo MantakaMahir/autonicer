@@ -92,7 +92,7 @@ Examples:
 ./autonicer pager-demo --algorithm lru --frames 3 --reference '1,2,3,1,4,2'
 ```
 
-`list` shows persistent registered processes. `list --all --json` shows live processes owned by the current user; unregistered entries are informational and remain under the normal safety policy until explicitly classified. JSON fields are designed for the Tauri bridge and scripting.
+`list` shows persistent registered processes. `list --all --json` shows live application processes owned by the current user. Common system/session services such as `systemd`, `sd-pam`, D-Bus, PipeWire, portal, GVFS, and tracker services are hidden from this discovery view to keep the desktop list useful; explicitly registered entries remain visible. Unregistered entries are informational and remain under the normal safety policy until explicitly classified. JSON fields are designed for the Tauri bridge and scripting.
 
 ## Safe CPU Demo
 
@@ -164,7 +164,7 @@ React + TypeScript -> Tauri Rust bridge -> approved AutoNicer C executable -> Li
 ```
 
 - **Overview**: live CPU percentage, controller state, process counts, protection count, CPU history, and recent audit entries.
-- **Processes**: live user-owned process data including PID, name, CPU, RSS, swap, state, classification, and protection. Controls classify, protect, restore, and resume through the core.
+- **Processes**: live user-owned application process data including PID, name, CPU, RSS, swap, state, classification, and protection. Common desktop/system session services are filtered from discovery. Controls classify, protect, restore, and resume through the core.
 - **Memory**: available/total RAM, memory pressure state, swap, page-fault rates, swap rates, and sample timestamp.
 - **Paging Lab**: user-space FIFO, LRU, and Clock simulation with configurable frames and page references. It never changes Linux memory mappings.
 - **Activity**: controller history plus current CPU, load state, and available-memory telemetry, including before any action has been logged.

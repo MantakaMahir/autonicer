@@ -231,9 +231,12 @@ int main(int argc, char **argv) {
     }
     if (json)
       puts("[");
+    size_t printed = 0;
     for (size_t i = 0; i < display_count; i++) {
       ManagedProcess *registered =
           registry_find(items, count, display[i].info.pid);
+      if (all && process_is_system_service(&display[i].info) && !registered)
+        continue;
       if (all && registered) {
         display[i].classification = registered->classification;
         display[i].protected_flag = registered->protected_flag;
@@ -250,7 +253,7 @@ int main(int argc, char **argv) {
                "\"minorFaultsPerSecond\":%.2f,\"majorFaultsPerSecond\":%.2f,"
                "\"classification\":\"%s\",\"protected\":%s,\"priorityChanged\":"
                "%s,\"paused\":%s}\n",
-               i ? "," : "", display[i].info.pid, display[i].info.name,
+               printed++ ? "," : "", display[i].info.pid, display[i].info.name,
                display[i].info.recent_cpu_percent, display[i].info.nice_value,
                display[i].info.state, display[i].info.rss_kb,
                display[i].info.swap_kb, display[i].info.minor_faults_per_second,
@@ -259,11 +262,13 @@ int main(int argc, char **argv) {
                display[i].protected_flag ? "true" : "false",
                display[i].priority_changed ? "true" : "false",
                display[i].paused_by_autonicer ? "true" : "false");
-      else
+      else {
         printf("%d | %s | nice=%d | %s | %s\n", display[i].info.pid,
                display[i].info.name, display[i].last_nice,
                class_name(display[i].classification),
                display[i].protected_flag ? "PROTECTED" : "-");
+        printed++;
+      }
     }
     if (json)
       puts("]");
