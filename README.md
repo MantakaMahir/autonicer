@@ -96,6 +96,17 @@ Examples:
 
 ## Safe CPU Demo
 
+For repeatable testing of all desktop and controller states, use the tracked scenario launcher:
+
+```sh
+./demo/scenarios.sh start-all
+./demo/scenarios.sh status
+./autonicer monitor --dry-run
+./demo/scenarios.sh stop
+```
+
+It starts a background CPU candidate, a protected critical CPU process, and a memory workload. It tracks only those PIDs, validates their executable names before cleanup, and restores priority changes before stopping them. See `docs/DEMO.md` for individual scenarios and expected results.
+
 Start the controlled workload:
 
 ```sh
