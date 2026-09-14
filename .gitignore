@@ -2,11 +2,12 @@ autonicer
 demo/cpu_hog
 src/*.o
 tests/test_autonicer
-core
-core.*
+/core
+/core.*
 desktop/node_modules
 desktop/dist
 desktop/src-tauri/target
+desktop/src-tauri/gen
 desktop/src-tauri/binaries/*
 !desktop/src-tauri/binaries/.gitkeep
 desktop/*.tsbuildinfo
