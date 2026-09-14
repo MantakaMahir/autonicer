@@ -1,0 +1,9 @@
+#include "memory.h"
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
+static int read_value(const char *path,const char *key,unsigned long long *out){FILE*f=fopen(path,"r");char line[256],name[64];unsigned long long v;if(!f)return -1;while(fgets(line,sizeof line,f))if(sscanf(line,"%63s %llu",name,&v)==2&&!strcmp(name,key)){*out=v;fclose(f);return 0;}fclose(f);return -1;}
+int memory_read(MemorySample*m){memset(m,0,sizeof *m);if(read_value("/proc/meminfo","MemTotal:",&m->total_kb)||read_value("/proc/meminfo","MemAvailable:",&m->available_kb)||read_value("/proc/meminfo","SwapTotal:",&m->swap_total_kb)||read_value("/proc/meminfo","SwapFree:",&m->swap_free_kb))return -1;if(read_value("/proc/vmstat","pgfault",&m->pgfault)||read_value("/proc/vmstat","pgmajfault",&m->pgmajfault)||read_value("/proc/vmstat","pswpin",&m->pswpin)||read_value("/proc/vmstat","pswpout",&m->pswpout))return -1;FILE*f=fopen("/proc/pressure/memory","r");char line[256];if(f){m->psi_available=1;while(fgets(line,sizeof line,f)){double a;if(sscanf(line,"some avg10=%lf",&a)==1)m->psi_some_avg10=a;if(sscanf(line,"full avg10=%lf",&a)==1)m->psi_full_avg10=a;}fclose(f);}clock_gettime(CLOCK_MONOTONIC,&m->timestamp);return 0;}
+int memory_delta(const MemorySample*b,MemorySample*a,double seconds,int high,int critical){if(!seconds||a->pgfault<b->pgfault||a->pgmajfault<b->pgmajfault||a->pswpin<b->pswpin||a->pswpout<b->pswpout)return -1;a->minor_faults_per_second=(a->pgfault-b->pgfault)/seconds;a->major_faults_per_second=(a->pgmajfault-b->pgmajfault)/seconds;a->swap_in_per_second=(a->pswpin-b->pswpin)/seconds;a->swap_out_per_second=(a->pswpout-b->pswpout)/seconds;double percent=a->total_kb?100.0*a->available_kb/a->total_kb:0;a->state=percent<=critical?MEMORY_CRITICAL:percent<=high?MEMORY_HIGH:MEMORY_NORMAL;return 0;}
+const char*memory_state_name(MemoryState s){return s==MEMORY_CRITICAL?"CRITICAL":s==MEMORY_HIGH?"HIGH":"NORMAL";}

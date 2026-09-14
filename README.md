@@ -86,3 +86,16 @@ npm run tauri build --prefix desktop
 ```
 
 The production bundle uses the compiled C executable as a Tauri external binary. Desktop core functionality is Linux-only; the web assets may build elsewhere, but process controls require Linux.
+
+## Memory and Paging Lab
+
+The core also exposes read-only Linux memory telemetry and a safe educational paging simulator:
+
+```sh
+./autonicer memory --json
+./autonicer pager-demo --algorithm clock --frames 4 --reference '7,0,1,2,0,3,0,4'
+```
+
+The controlled `demo/memory_hog` workload can be used to observe real RSS and fault data without touching unrelated processes.
+
+Live memory values come from `/proc/meminfo`, `/proc/vmstat`, and optional memory PSI. The Paging Lab is entirely user-space and simulated; it never changes Linux page tables. See `docs/MEMORY.md`, `docs/PAGING_LAB.md`, and `docs/MEMORY_DEMO.md`.

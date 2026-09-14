@@ -1,5 +1,6 @@
 autonicer
 demo/cpu_hog
+demo/memory_hog
 src/*.o
 tests/test_autonicer
 /core

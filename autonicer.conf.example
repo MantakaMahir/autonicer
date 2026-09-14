@@ -6,3 +6,6 @@ nice_step=5
 max_nice=19
 cooldown_seconds=8
 allow_auto_pause=false
+memory_high_available_percent=20
+memory_critical_available_percent=10
+memory_samples_required=3

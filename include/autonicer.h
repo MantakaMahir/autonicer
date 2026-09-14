@@ -14,7 +14,9 @@ typedef struct {
     char state;
     int nice_value;
     unsigned long long utime, stime, starttime;
+    unsigned long long minor_faults, major_faults, rss_kb, swap_kb;
     double recent_cpu_percent;
+    double minor_faults_per_second, major_faults_per_second;
     int valid;
 } ProcessInfo;
 
@@ -41,6 +43,7 @@ typedef struct {
     int sample_interval, high_threshold, critical_threshold;
     int high_samples_required, nice_step, max_nice, cooldown_seconds;
     int allow_auto_pause;
+    int memory_high_available_percent, memory_critical_available_percent, memory_samples_required;
 } AutoNicerConfig;
 
 const char *class_name(ProcessClass c);
