@@ -2,7 +2,9 @@
 
 AutoNicer is a Linux C17 controller and Tauri desktop application for observing CPU and memory pressure and safely managing explicitly selected background processes. It reads Linux telemetry from `/proc`, makes policy decisions in the C core, and exposes the same data through a terminal CLI and desktop UI.
 
-It does not kill processes, execute arbitrary shell commands, modify kernel page tables, or use a web backend.
+It does not automatically kill processes, execute arbitrary shell commands,
+modify kernel page tables, or use a web backend. The CLI provides a guarded
+manual `kill` command for eligible registered background workloads.
 
 ## Quick Start
 
@@ -140,7 +142,7 @@ The argument is the approximate allocation size in MiB. Stop it with `Ctrl-C`. T
 
 Only explicitly classified `BACKGROUND` processes can be automatically reniced. `NORMAL`, `CRITICAL`, and `PROTECTED` processes are excluded. The core also excludes AutoNicer itself, PID 1, zombies, vanished processes, processes owned by another user, and stale registrations whose `/proc` starttime changed.
 
-Before every action, the core validates PID identity, starttime, UID, process state, classification, and protection. High CPU without an eligible background process produces no action. Priority changes use `getpriority()` and `setpriority()`; higher nice values reduce CPU scheduling preference. Automatic pause is disabled and no process is killed. `resume` only continues a pause recorded as performed by AutoNicer.
+Before every action, the core validates PID identity, starttime, UID, process state, classification, and protection. High CPU without an eligible background process produces no action. Priority changes use `getpriority()` and `setpriority()`; higher nice values reduce CPU scheduling preference. Automatic pause is disabled, and the monitor never kills a process automatically. The explicit `kill` command sends only `SIGTERM` to an eligible registered background process. `resume` only continues a pause recorded as performed by AutoNicer.
 
 State is stored locally under `~/.local/state/autonicer/`:
 
@@ -230,4 +232,4 @@ run-desktop.sh           one-command Tauri development launcher
 
 ## Scope
 
-The monitor runs in the foreground and state is local to one user. Kernel modules, cgroups, process killing, arbitrary command execution, web services, and kernel page-table manipulation are intentionally out of scope.
+The monitor runs in the foreground and state is local to one user. Kernel modules, cgroups, automatic process killing, arbitrary command execution, web services, and kernel page-table manipulation are intentionally out of scope.

@@ -32,10 +32,15 @@ Linux /proc files -> monitor/process/memory modules -> controller -> nice or SIG
   - Creates the local state directory under `~/.local/state/autonicer`.
   - Loads configuration using `config.c`.
   - Loads and saves registered process information using `registry.c`.
-  - Handles commands such as `sample`, `monitor`, `memory`, `list`, `classify`, `protect`, `restore`, `resume`, `history`, and `config`.
+  - Handles commands such as `sample`, `monitor`, `memory`, `list`, `classify`, `protect`, `restore`, `resume`, `kill`, `history`, and `config`.
   - Provides JSON output for the desktop application and scripts.
   - Calls the controller when the user runs the monitoring command.
   - Validates PIDs through `parse_pid` before using them.
+  - Provides a guarded manual `kill` command that sends `SIGTERM` only to a
+    registered, unprotected `BACKGROUND` process owned by the current user.
+  - Rejects AutoNicer, PID 1, stale, foreign, zombie, protected, and
+    non-background processes before a manual kill, then records successful
+    termination requests through `logger.c`.
 - **Simple explanation:** `main.c` is the coordinator. It does not perform every calculation itself; it calls the correct module for each command.
 
 ## `src/config.c`

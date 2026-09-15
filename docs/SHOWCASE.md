@@ -209,7 +209,8 @@ Use these points during the showcase:
 - Only explicitly classified `BACKGROUND` processes are eligible for automatic renicing.
 - `NORMAL`, `CRITICAL`, and `PROTECTED` processes are excluded.
 - PID ownership and process start time are validated before actions.
-- AutoNicer never kills processes.
+- The automatic controller never kills processes; termination is available only
+  through the guarded manual CLI command described below.
 - The Paging Lab is a user-space simulation and never modifies Linux page tables.
 - The C core remains authoritative for telemetry, policy, and process actions.
 
