@@ -236,6 +236,13 @@ int main(int argc, char **argv) {
         display[i].has_cpu_sample = 1;
       }
       sleep(config.sample_interval);
+    } else {
+      for (size_t i = 0; i < display_count; i++) {
+        display[i].last_utime = display[i].info.utime;
+        display[i].last_stime = display[i].info.stime;
+        display[i].has_cpu_sample = 1;
+      }
+      sleep(config.sample_interval);
     }
     if (json)
       puts("[");
@@ -254,11 +261,8 @@ int main(int argc, char **argv) {
       }
       ProcessInfo p;
       if (process_read(display[i].info.pid, &p) == 0) {
-        if (all)
-          process_update_cpu(&display[i], &p, config.sample_interval);
-        else
-          display[i].info = p;
-      } else if (all) {
+        process_update_cpu(&display[i], &p, config.sample_interval);
+      } else {
         continue;
       }
       if (json)
