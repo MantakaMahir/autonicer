@@ -213,7 +213,51 @@ Use these points during the showcase:
 - The Paging Lab is a user-space simulation and never modifies Linux page tables.
 - The C core remains authoritative for telemetry, policy, and process actions.
 
-## 9. Cleanup
+## 9. Demonstrate The Manual Kill Switch
+
+The CLI can manually terminate only a registered, unprotected `BACKGROUND` demo process. It refuses `NORMAL`, `CRITICAL`, protected, foreign, stale, zombie, PID 1, and AutoNicer processes.
+
+Start the complete scenario:
+
+```bash
+./demo/scenarios.sh start-all
+./demo/scenarios.sh status
+```
+
+Copy the PID of the `background` `cpu_hog` process from the status output, then replace `BACKGROUND_PID` below:
+
+```bash
+./autonicer kill BACKGROUND_PID
+```
+
+Expected output:
+
+```text
+Process termination requested for PID BACKGROUND_PID.
+```
+
+Verify that it exited:
+
+```bash
+./demo/scenarios.sh status
+```
+
+The protected critical process must not be killable. Copy its PID and test the safety refusal:
+
+```bash
+./autonicer kill PROTECTED_PID
+```
+
+Expected result:
+
+```text
+Kill refused: process is not an eligible background workload.
+Operation failed safely.
+```
+
+The kill action uses `SIGTERM`, requires current process identity and ownership validation, and never uses `SIGKILL` or arbitrary shell execution.
+
+## 10. Cleanup
 
 Always stop the controlled workloads when finished:
 
