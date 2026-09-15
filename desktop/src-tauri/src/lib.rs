@@ -199,7 +199,9 @@ async fn process_command(
             pid_text,
             classification.ok_or("classification is required")?,
         ],
-        "protect" | "unprotect" | "restore" | "resume" => vec![command, pid_text],
+        "protect" | "unprotect" | "restore" | "resume" | "kill" => {
+            vec![command, pid_text]
+        }
         _ => return Err("unsupported process command".into()),
     };
     run_core_async(app, args).await

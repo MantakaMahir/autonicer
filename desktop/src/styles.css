@@ -559,6 +559,10 @@ td b {
   opacity: 0.35;
   cursor: not-allowed;
 }
+.danger-button {
+  border-color: #733d43 !important;
+  color: var(--red) !important;
+}
 .safety-note {
   font-size: 10px;
   line-height: 1.6;

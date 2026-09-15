@@ -377,6 +377,24 @@ function Processes({
                     >
                       Resume
                     </button>
+                    <button
+                      className="danger-button"
+                      disabled={
+                        !core.isDesktopShell ||
+                        p.classification !== "BACKGROUND" ||
+                        p.protected
+                      }
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Terminate ${p.name} (PID ${p.pid})? This cannot be undone.`,
+                          )
+                        )
+                          void act("kill", p.pid);
+                      }}
+                    >
+                      Kill
+                    </button>
                   </div>
                 </td>
               </tr>

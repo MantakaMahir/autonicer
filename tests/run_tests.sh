@@ -21,6 +21,13 @@ pid = int(sys.argv[1])
 row = next(item for item in rows if item["pid"] == pid)
 assert row["cpuPercent"] > 0
 PY
+./autonicer classify "$cpu_pid" background
+./autonicer kill "$cpu_pid"
+sleep 0.2
+if kill -0 "$cpu_pid" 2>/dev/null; then
+    echo "eligible background kill did not terminate" >&2
+    exit 1
+fi
 kill "$cpu_pid" 2>/dev/null || true
 wait "$cpu_pid" 2>/dev/null || true
 trap - EXIT

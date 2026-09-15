@@ -31,7 +31,7 @@ static void help(void) {
        "--algorithm fifo|lru|clock --frames N --reference LIST\nautonicer "
        "list|status [--json|--all --json]|history|config\nautonicer classify PID "
        "normal|background|critical\nautonicer protect|unprotect PID\nautonicer "
-       "restore|resume PID");
+       "restore|resume|kill PID");
 }
 static void json_memory(const MemorySample *m) {
   printf("{\"timestamp\":%ld,\"memoryState\":\"%s\",\"totalKb\":%llu,"
@@ -349,6 +349,21 @@ int main(int argc, char **argv) {
     } else {
       m->paused_by_autonicer = 0;
       puts("Process resumed.");
+    }
+  } else if (!strcmp(argv[1], "kill")) {
+    ManagedProcess *m = registry_find(items, count, pid);
+    ProcessInfo current;
+    if (!m || m->classification != PROCESS_BACKGROUND || m->protected_flag ||
+        m->info.pid == getpid() || m->info.pid == 1 ||
+        !process_identity_valid(m, &current) || !process_is_owned(&current, getuid()) ||
+        current.state == 'Z' || kill(pid, SIGTERM)) {
+      result = -1;
+      puts("Kill refused: process is not an eligible background workload.");
+    } else {
+      m->last_action = time(NULL);
+      logger_write(log, 0, pid, current.name, "KILL", m->last_nice,
+                   m->last_nice, 1, "");
+      printf("Process termination requested for PID %d.\n", pid);
     }
   } else
     result = -1;
