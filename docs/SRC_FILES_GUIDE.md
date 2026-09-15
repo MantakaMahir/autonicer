@@ -163,6 +163,13 @@ The `src` folder may also contain files such as `main.o`, `monitor.o`, and `cont
 - They are not files that the developer normally explains as separate features.
 - The source files ending in `.c` are the files containing the readable project logic.
 
+## Recent small code changes
+
+- **Registered process CPU sampling:** The `list` command now takes an initial CPU-time snapshot, waits for the configured `sample_interval`, and then calls `process_update_cpu` for registered processes. This allows the list output to show a recent CPU percentage instead of only displaying process information.
+- **Guarded manual process termination:** `main.c` now supports `autonicer kill PID`. The command only sends `SIGTERM` when the process is registered, classified as `BACKGROUND`, not protected, not AutoNicer itself, not PID 1, owned by the current user, not a zombie, and still matches its saved process identity. Otherwise, termination is refused.
+- **Audit logging for manual termination:** A successful manual kill request is recorded by `logger_write` with the `KILL` action, so it appears in the project history.
+- **Why these changes matter:** CPU sampling improves the accuracy of process information, while the guarded kill command gives the user manual control without allowing arbitrary or unsafe process termination.
+
 ## Short teacher explanation
 
 > The `src` folder contains the implementation of AutoNicer. `main.c` coordinates commands and modules. `monitor.c` reads total CPU usage, `process.c` reads and validates individual processes, and `memory.c` measures RAM and swap pressure. `registry.c` remembers classifications and protected processes. `controller.c` makes safe decisions and changes process priority with Linux `nice` values or, as a last resort, pauses a process. `config.c` loads policies, `logger.c` records actions, and `pager.c` provides a separate simulation of FIFO, LRU, and Clock page replacement. Together, these files form the C core of the project.
