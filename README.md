@@ -96,6 +96,8 @@ Examples:
 
 ## Safe CPU Demo
 
+For a complete copy-ready presentation, see [`docs/SHOWCASE.md`](docs/SHOWCASE.md).
+
 For repeatable testing of all desktop and controller states, use the tracked scenario launcher:
 
 ```sh
